@@ -46,7 +46,6 @@ COPY --chown=0:0 --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert
 # The executor of this image should still specify a user during setup.
 COPY --chown=65534:0 --from=builder /data /data
 COPY --chown=65534:0 --from=builder /build/templates /data/templates
-COPY --chown=65534:0 --from=builder /build/dict.txt /data/dict.txt
 USER 65534
 WORKDIR /data
 

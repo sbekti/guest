@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"net/mail"
 	"os"
@@ -13,12 +11,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/docker/pkg/namesgenerator"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/dchest/captcha"
-	redis "github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
-	mailgun "github.com/mailgun/mailgun-go/v4"
+	"github.com/mailgun/mailgun-go/v4"
 	"github.com/urfave/cli"
 )
 
@@ -28,11 +27,10 @@ var (
 	redisAddr     string
 	redisPwd      string
 	logLevel      string
-	pwdPattern    string
 	pwdExpiration int
+	vlanId        int
 	emailSender   string
 	mailgunApiKey string
-	dictFile      string
 )
 
 var ctx = context.Background()
@@ -76,9 +74,20 @@ func register(c *redis.Client, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pwd := generatePassword(pwdPattern, "")
+	pwd := namesgenerator.GetRandomName(1)
 	duration := time.Duration(pwdExpiration) * 24 * time.Hour
-	err := c.Set(ctx, email, pwd, duration).Err()
+
+	emailKey := "guest:email:" + strings.ToLower(email)
+	err := c.Set(ctx, emailKey, pwd, duration).Err()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Internal server error, please try again.")
+		log.Errorf("register: failed to write key to redis: %s\n", err)
+		return
+	}
+
+	vlanKey := "guest:vlan:" + strings.ToLower(email)
+	err = c.Set(ctx, vlanKey, strconv.Itoa(vlanId), duration).Err()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Internal server error, please try again.")
@@ -126,65 +135,6 @@ func sendMail(pwd string, recipient string) {
 	log.Infof("Email sent to %s, ID: %s Resp: %s\n", recipient, id, resp)
 }
 
-func readLines(path string) ([]string, error) {
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	lines := strings.Split(string(content), "\n")
-	return lines, nil
-}
-
-func getWords() (int, []string) {
-	lines, err := readLines(dictFile)
-	if err != nil {
-		log.Fatalf("readLines: %s", err)
-		return 0, nil
-	}
-
-	count := len(lines)
-	return count, lines
-}
-
-func getRandomWord() string {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	allWordsCount, allWords := getWords()
-	var randomNumber int = r.Intn(allWordsCount)
-
-	return allWords[randomNumber]
-}
-
-func getRandomDigit(numLimit int) int {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	var digit int = r.Intn(numLimit)
-	return digit
-}
-
-func generatePassword(pattern string, separator string) string {
-	words := patternToArray(pattern, separator)
-	return strings.Join(words, "")
-}
-
-func patternToArray(pattern string, separator string) []string {
-	array := make([]string, 0)
-
-	for i := 0; i < len(pattern); i++ {
-		if string(pattern[i]) == "w" {
-			array = append(array, getRandomWord())
-		}
-
-		if string(pattern[i]) == "d" {
-			array = append(array, strconv.Itoa(getRandomDigit(10)))
-		}
-
-		if string(pattern[i]) == "s" {
-			array = append(array, separator)
-		}
-	}
-
-	return array
-}
-
 func main() {
 	app := cli.NewApp()
 
@@ -224,19 +174,19 @@ func main() {
 			EnvVar:      "REDIS_PWD",
 			Destination: &redisPwd,
 		},
-		cli.StringFlag{
-			Name:        "pwd-pattern",
-			Value:       "wdwd",
-			Usage:       "password pattern",
-			EnvVar:      "PWD_PATTERN",
-			Destination: &pwdPattern,
-		},
 		cli.IntFlag{
 			Name:        "pwd-expiration",
 			Value:       3,
 			Usage:       "password expiration in days",
 			EnvVar:      "PWD_EXPIRATION",
 			Destination: &pwdExpiration,
+		},
+		cli.IntFlag{
+			Name:        "vlan-id",
+			Value:       0,
+			Usage:       "vlan id",
+			EnvVar:      "VLAN_ID",
+			Destination: &vlanId,
 		},
 		cli.StringFlag{
 			Name:        "email-sender",
@@ -251,13 +201,6 @@ func main() {
 			Usage:       "mailgun api key",
 			EnvVar:      "MAILGUN_API_KEY",
 			Destination: &mailgunApiKey,
-		},
-		cli.StringFlag{
-			Name:        "dict-file",
-			Value:       "dict.txt",
-			Usage:       "dictionary file",
-			EnvVar:      "DICT_FILE",
-			Destination: &dictFile,
 		},
 	}
 
