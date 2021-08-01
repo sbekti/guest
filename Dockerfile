@@ -1,4 +1,13 @@
-FROM golang:latest AS builder
+FROM node:latest AS node-builder
+WORKDIR /build
+
+COPY package.json yarn.lock ./
+COPY public/ ./public
+COPY src/ ./src
+
+RUN yarn && yarn build
+
+FROM golang:latest AS go-builder
 
 ENV GO111MODULE=on \
     CGO_ENABLED=1
@@ -8,7 +17,7 @@ WORKDIR /build
 # Let's cache modules retrieval - those don't change so often
 # COPY go.mod .
 # COPY go.sum .
-RUN go mod init github.com/sbekti/welcome
+RUN go mod init github.com/sbekti/guest
 RUN go mod download
 
 # Copy the code necessary to build the application
@@ -38,14 +47,14 @@ RUN mkdir /data
 # Create the minimal runtime image
 FROM scratch
 
-COPY --chown=0:0 --from=builder /dist /
-COPY --chown=0:0 --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --chown=0:0 --from=go-builder /dist /
+COPY --chown=0:0 --from=go-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Set up the app to run as a non-root user inside the /data folder
 # User ID 65534 is usually user 'nobody'. 
 # The executor of this image should still specify a user during setup.
-COPY --chown=65534:0 --from=builder /data /data
-COPY --chown=65534:0 --from=builder /build/templates /data/templates
+COPY --chown=65534:0 --from=go-builder /data/ /data
+COPY --chown=65534:0 --from=node-builder /build/build/ /data/build
 USER 65534
 WORKDIR /data
 

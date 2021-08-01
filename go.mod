@@ -1,4 +1,4 @@
-module github.com/sbekti/welcome
+module github.com/sbekti/guest
 
 go 1.16
 
