@@ -3,6 +3,7 @@ module github.com/sbekti/guest
 go 1.16
 
 require (
+	github.com/AfterShip/email-verifier v1.1.0
 	github.com/dchest/captcha v0.0.0-20200903113550-03f5f0333e1f
 	github.com/docker/docker v20.10.7+incompatible
 	github.com/go-redis/redis/v8 v8.11.1

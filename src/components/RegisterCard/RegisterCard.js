@@ -141,6 +141,7 @@ export const RegisterCard = ({ onRegisterSuccess }) => {
                     <Button
                       type='submit'
                       isDisabled={isSubmitting || !(isValid && dirty)}
+                      isLoading={isSubmitting}
                       bg={'blue.400'}
                       color={'white'}
                       _hover={{

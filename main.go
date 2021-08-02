@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/mail"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -16,6 +15,7 @@ import (
 	"github.com/docker/docker/pkg/namesgenerator"
 	log "github.com/sirupsen/logrus"
 
+	emailverifier "github.com/AfterShip/email-verifier"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"github.com/mailgun/mailgun-go/v4"
@@ -33,6 +33,8 @@ var (
 	ssid          string
 	emailSender   string
 	mailgunApiKey string
+
+	verifier = emailverifier.NewVerifier().EnableAutoUpdateDisposable()
 )
 
 type spaHandler struct {
@@ -102,14 +104,38 @@ func registerAccount(c *redis.Client, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := mail.ParseAddress(rr.Email); err != nil {
+	ret, err := verifier.Verify(rr.Email)
+	if err != nil {
+		switch {
+		case !ret.HasMxRecords:
+			log.Errorf("register: no MX record for domain, email: %s\n", rr.Email)
+			inputErrors["email"] = "No MX record for domain"
+		default:
+			log.Errorf("register: unable to verify email: %s\n", err)
+			sendRegisterResponse(w, http.StatusInternalServerError, false,
+				"Internal server error, please try again.", inputErrors, rr.Email, 0)
+			return
+		}
+	}
+
+	if !ret.Syntax.Valid {
 		log.Errorf("register: invalid email, email: %s\n", rr.Email)
 		inputErrors["email"] = "Invalid email address"
 	}
 
+	if ret.Disposable {
+		log.Errorf("register: use of disposable email, email: %s\n", rr.Email)
+		inputErrors["email"] = "No disposable email please"
+	}
+
+	if ret.RoleAccount {
+		log.Errorf("register: use of role email address, email: %s\n", rr.Email)
+		inputErrors["email"] = "No role email address please"
+	}
+
 	if !captcha.VerifyString(rr.CaptchaId, rr.CaptchaAnswer) {
 		log.Errorf("register: wrong captcha, email: %s\n", rr.Email)
-		inputErrors["captchaAnswer"] = "Wrong CAPTCHA value"
+		inputErrors["captchaAnswer"] = "Wrong CAPTCHA answer"
 	}
 
 	if len(inputErrors) > 0 {
