@@ -17,11 +17,12 @@ jobs:
       uses: actions/checkout@v2
       with:
         submodules: true
-    
+
     - name: Prepare
       id: prep
       run: |
-        DOCKER_IMAGE=sbekti/${{ github.repository.name }}
+        echo ::set-env name=REPO_NAME::${{ github.repository.name }}
+        DOCKER_IMAGE="sbekti/${REPO_NAME}"
         VERSION=edge
         if [[ $GITHUB_REF == refs/tags/* ]]; then
           VERSION=${GITHUB_REF#refs/tags/v}
