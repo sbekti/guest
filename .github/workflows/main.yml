@@ -20,7 +20,8 @@ jobs:
 
     - name: Prepare
       id: prep
-      env: REPO_NAME: ${{ github.repository.name }}
+      env: 
+        REPO_NAME: ${{ github.repository.name }}
       run: |
         DOCKER_IMAGE="sbekti/${REPO_NAME}"
         VERSION=edge
