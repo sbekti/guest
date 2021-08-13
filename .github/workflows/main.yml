@@ -20,8 +20,8 @@ jobs:
 
     - name: Prepare
       id: prep
+      env: REPO_NAME: ${{ github.repository.name }}
       run: |
-        echo ::set-env name=REPO_NAME::${{ github.repository.name }}
         DOCKER_IMAGE="sbekti/${REPO_NAME}"
         VERSION=edge
         if [[ $GITHUB_REF == refs/tags/* ]]; then
