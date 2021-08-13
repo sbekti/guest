@@ -20,10 +20,8 @@ jobs:
 
     - name: Prepare
       id: prep
-      env: 
-        REPO_NAME: ${{ github.repository }}
       run: |
-        DOCKER_IMAGE="${REPO_NAME}"
+        DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/${GITHUB_REPOSITORY#*/}"
         VERSION=edge
         if [[ $GITHUB_REF == refs/tags/* ]]; then
           VERSION=${GITHUB_REF#refs/tags/v}
@@ -73,3 +71,4 @@ jobs:
 
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
+
