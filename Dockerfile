@@ -5,7 +5,7 @@ COPY package.json yarn.lock ./
 COPY public/ ./public
 COPY src/ ./src
 
-RUN yarn && yarn build
+RUN yarn install --network-timeout 1000000 && yarn build
 
 FROM golang:latest AS go-builder
 
