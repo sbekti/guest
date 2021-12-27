@@ -38,7 +38,7 @@ export const HomePage = () => {
       return (
         <Stack spacing={8} mx={'auto'} maxW={'lg'} py={12} px={6}>
           <Stack align={'center'}>
-            <Heading fontSize={'4xl'}>👋 Welcome!</Heading>
+            <Heading fontSize={'4xl'}>Bektinet</Heading>
             <Text fontSize={'lg'} color={'gray.600'}>
               Register to access the guest Wi-Fi
             </Text>

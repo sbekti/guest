@@ -78,9 +78,10 @@ export const RegisterCard = ({ onRegisterSuccess }) => {
     <Box
       rounded={'lg'}
       bg={useColorModeValue('white', 'gray.700')}
-      boxShadow={'lg'}
+      borderWidth='1px'
       w={80}
-      p={8}>
+      p={4}
+      >
         <Stack spacing={6}>
           { error && 
             <Alert status='error'>

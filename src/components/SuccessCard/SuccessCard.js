@@ -11,10 +11,10 @@ import {
 export const SuccessCard = ({ onBackToHomeClick }) => {
   return (
     <Stack
-      boxShadow={'2xl'}
       bg={useColorModeValue('white', 'gray.700')}
-      rounded={'xl'}
-      p={10}
+      borderWidth='1px'
+      rounded={'lg'}
+      p={4}
       spacing={8}
       align={'center'}>
       <Icon as={NotificationIcon} w={24} h={24} />

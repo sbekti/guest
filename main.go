@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,7 +13,7 @@ import (
 	"time"
 
 	"github.com/dchest/captcha"
-	"github.com/docker/docker/pkg/namesgenerator"
+	petname "github.com/dustinkirkland/golang-petname"
 	log "github.com/sirupsen/logrus"
 
 	emailverifier "github.com/AfterShip/email-verifier"
@@ -144,7 +145,7 @@ func registerAccount(c *redis.Client, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pwd := namesgenerator.GetRandomName(1)
+	pwd := petname.Generate(2, "_")
 	duration := time.Duration(pwdExpiration) * 24 * time.Hour
 
 	emailKey := "guest:email:" + strings.ToLower(rr.Email)
@@ -336,6 +337,8 @@ func main() {
 		log.Fatal(srv.ListenAndServe())
 		return nil
 	}
+
+	rand.Seed(time.Now().UnixNano())
 
 	err := app.Run(os.Args)
 	if err != nil {
