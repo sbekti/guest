@@ -1,4 +1,4 @@
-FROM node:latest AS node-builder
+FROM node:16 AS node-builder
 WORKDIR /build
 
 COPY package.json yarn.lock ./
