@@ -185,7 +185,8 @@ func registerAccount(c *redis.Client, w http.ResponseWriter, r *http.Request) {
 	}
 
 	var pwd = ""
-	emailKey := "guest:email:" + strings.ToLower(rr.Email) + pending
+	emailKey := "guest:email:" + strings.ToLower(rr.Email)
+	emailKeyWithPending := emailKey + pending
 	duration := time.Duration(pwdExpiration) * 24 * time.Hour
 
 	// Use existing password if exists, otherwise generate a new password.
@@ -194,7 +195,7 @@ func registerAccount(c *redis.Client, w http.ResponseWriter, r *http.Request) {
 		pwd = petname.Generate(2, "_")
 	}
 
-	err = c.Set(ctx, emailKey, pwd, duration).Err()
+	err = c.Set(ctx, emailKeyWithPending, pwd, duration).Err()
 	if err != nil {
 		log.Errorf("register: failed to write key to redis: %s\n", err)
 		sendRegisterResponse(w, http.StatusInternalServerError, false,
@@ -203,8 +204,8 @@ func registerAccount(c *redis.Client, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vlanKey := "guest:vlan:" + strings.ToLower(rr.Email)
-	err = c.Set(ctx, vlanKey, strconv.Itoa(vlanId), duration).Err()
+	vlanKeyWithPending := "guest:vlan:" + strings.ToLower(rr.Email) + pending
+	err = c.Set(ctx, vlanKeyWithPending, strconv.Itoa(vlanId), duration).Err()
 	if err != nil {
 		log.Errorf("register: failed to write key to redis: %s\n", err)
 		sendRegisterResponse(w, http.StatusInternalServerError, false,
@@ -256,19 +257,29 @@ func approveAccount(c *redis.Client, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oldKey := "guest:email:" + email + ":pending"
-	newKey := "guest:email:" + email
-	if err = c.Rename(ctx, oldKey, newKey).Err(); err != nil {
+	oldEmailKey := "guest:email:" + email + ":pending"
+	newEmailKey := "guest:email:" + email
+	if err = c.Rename(ctx, oldEmailKey, newEmailKey).Err(); err != nil {
 		log.Errorf("approve: failed to rename key %s to %s in redis: %s\n",
-			oldKey, newKey, err)
+			oldEmailKey, newEmailKey, err)
 		sendApproveResponse(w, http.StatusInternalServerError, false,
 			"Internal server error.", "")
 		return
 	}
 
-	pwd, err := c.Get(ctx, newKey).Result()
+	pwd, err := c.Get(ctx, newEmailKey).Result()
 	if err != nil {
 		log.Errorf("approve: failed to get key %s in redis: %s\n", err)
+		sendApproveResponse(w, http.StatusInternalServerError, false,
+			"Internal server error.", "")
+		return
+	}
+
+	oldVlanKey := "guest:vlan:" + email + ":pending"
+	newVlanKey := "guest:vlan:" + email
+	if err = c.Rename(ctx, oldVlanKey, newVlanKey).Err(); err != nil {
+		log.Errorf("approve: failed to rename key %s to %s in redis: %s\n",
+			oldVlanKey, newVlanKey, err)
 		sendApproveResponse(w, http.StatusInternalServerError, false,
 			"Internal server error.", "")
 		return
