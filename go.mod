@@ -10,5 +10,6 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/mailgun/mailgun-go/v4 v4.5.2
 	github.com/sirupsen/logrus v1.8.1
+	github.com/thanhpk/randstr v1.0.4
 	github.com/urfave/cli v1.22.5
 )

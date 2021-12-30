@@ -16,14 +16,14 @@ export const HomePage = () => {
     const appHeight = () => {
       const doc = document.documentElement;
       doc.style.setProperty('--app-height', `${window.innerHeight}px`);
-    }
+    };
     window.addEventListener('resize', appHeight);
     appHeight();
   }, []);
 
-  const handleRegisterSuccess = (result) => {
+  const handleRegisterSuccess = result => {
     setShowSuccess(true);
-  }
+  };
 
   const componentToDisplay = () => {
     if (showSuccess) {
@@ -47,15 +47,16 @@ export const HomePage = () => {
         </Stack>
       );
     }
-  }
+  };
 
   return (
     <Flex
       minH={'var(--app-height)'}
       align={'center'}
       justify={'center'}
-      bg={useColorModeValue('gray.50', 'gray.800')}>
-      { componentToDisplay() }
+      bg={useColorModeValue('gray.50', 'gray.800')}
+    >
+      {componentToDisplay()}
     </Flex>
   );
 };
