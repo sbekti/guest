@@ -7,17 +7,14 @@ COPY src/ ./src
 
 RUN yarn install --network-timeout 1000000 && yarn build
 
-FROM golang:latest AS go-builder
+FROM golang:1.24-alpine AS go-builder
 
 ENV GO111MODULE=on \
     CGO_ENABLED=0
 
 WORKDIR /build
 
-# Let's cache modules retrieval - those don't change so often
-# COPY go.mod .
-# COPY go.sum .
-RUN go mod init github.com/sbekti/guest
+COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy the code necessary to build the application
@@ -25,12 +22,12 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN go build -v -o main
+RUN go build -v -o guest
 
 # Let's create a /dist folder containing just the files necessary for runtime.
 # Later, it will be copied as the / (root) of the output image.
 WORKDIR /dist
-RUN cp /build/main ./main
+RUN cp /build/guest ./guest
 
 # Optional: in case your application uses dynamic linking (often the case with CGO), 
 # this will collect dependent libraries so they're later copied to the final image
@@ -58,4 +55,4 @@ COPY --chown=65534:0 --from=node-builder /build/build/ /data/build
 USER 65534
 WORKDIR /data
 
-ENTRYPOINT ["/main"]
+ENTRYPOINT ["/guest"]
